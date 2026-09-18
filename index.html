@@ -188,9 +188,17 @@ async function _sha(s){var b=await crypto.subtle.digest("SHA-256",new TextEncode
   return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join("");}
 (function(){
   var g=document.getElementById("gate"),root=document.getElementById("appRoot");
-  var ok=false;try{ok=localStorage.getItem("tr_auth")===PWHASH;}catch(e){}
-  if(ok){g.hidden=true;root.hidden=false;}
-  function pass(){try{localStorage.setItem("tr_auth",PWHASH);}catch(e){}g.hidden=true;root.hidden=false;}
+  function authed(){
+    try{if(localStorage.getItem("tr_auth")===PWHASH)return true;}catch(e){}
+    if(document.cookie.indexOf("tr_auth="+PWHASH)>=0)return true;
+    return false;
+  }
+  if(authed()){g.hidden=true;root.hidden=false;}
+  function pass(){
+    try{localStorage.setItem("tr_auth",PWHASH);}catch(e){}
+    try{document.cookie="tr_auth="+PWHASH+";path=/;max-age=31536000;SameSite=Lax";}catch(e){}
+    g.hidden=true;root.hidden=false;
+  }
   document.getElementById("gbtn").onclick=async function(){
     var v=document.getElementById("gpw").value;
     if(await _sha(v)===PWHASH)pass();else document.getElementById("gerr").hidden=false;

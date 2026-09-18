@@ -47,6 +47,12 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
 .hd .upd{font-size:11px;color:#a5b4fc;margin-top:3px;}
 /* filter bar (static) */
 .fb{position:static;z-index:15;background:var(--bg);padding:10px 12px 6px;}
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:9px 12px;margin-bottom:9px;box-shadow:var(--shadow);}
+.searchbox .si{font-size:15px;opacity:.7;}
+.searchbox input{flex:1;border:none;background:transparent;color:var(--ink);font-size:15px;outline:none;}
+.searchbox input::placeholder{color:var(--faint);}
+.searchbox .sclr{font-size:13px;color:var(--faint);cursor:pointer;padding:2px 4px;}
 .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;background:var(--chip);color:var(--chip-ink);border:1px solid transparent;
@@ -171,6 +177,11 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
   </div>
 
   <div class="fb" id="fbBar">
+    <div class="searchbox">
+      <span class="si">🔍</span>
+      <input id="searchInput" type="search" placeholder="搜艺人 / 平台 / 城市…" autocomplete="off">
+      <span class="sclr" id="searchClear" hidden>✕</span>
+    </div>
     <div class="chips" id="dateChips"></div>
     <div class="chips" id="regionChips" style="margin-top:7px"></div>
     <div class="togrow">
@@ -300,7 +311,10 @@ function isHidden(e){return P.hidden.indexOf(e.site)>=0||P.hidden.indexOf(e.regi
 function esc(s){return (s+"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
 
 /* filter state */
-var F={region:"全部",sale:"全部",heat:0,showDone:false,date:"全部"};
+var F={region:"全部",sale:"全部",heat:0,showDone:false,date:"全部",q:""};
+function matchQ(e){if(!F.q)return true;var q=F.q.toLowerCase();
+  return e.show.toLowerCase().indexOf(q)>=0||e.site.toLowerCase().indexOf(q)>=0||
+    e.city.toLowerCase().indexOf(q)>=0||e.region.toLowerCase().indexOf(q)>=0||(e.cat&&e.cat.toLowerCase().indexOf(q)>=0);}
 var SALES=["全部","公售","预售","会员","优先"];
 var HEATS=[[0,"热度不限"],[45,"≥45"],[70,"≥70"],[85,"≥85 重点"]];
 var hIdx=0,sIdx=0;
@@ -335,6 +349,7 @@ function cardHTML(e){
 
 function passFilter(e){
   if(isHidden(e))return false;
+  if(!matchQ(e))return false;
   if(F.date!=="全部"&&e.date!==F.date)return false;
   if(F.region!=="全部"&&e.region!==F.region)return false;
   if(F.sale!=="全部"&&e.type.indexOf(F.sale)<0)return false;
@@ -377,7 +392,7 @@ function renderFav(){
 }
 
 function renderCal(){
-  var rows=EV.filter(function(e){return !isHidden(e)&&(F.date==="全部"||e.date===F.date)&&(F.region==="全部"||e.region===F.region);});
+  var rows=EV.filter(function(e){return !isHidden(e)&&matchQ(e)&&(F.date==="全部"||e.date===F.date)&&(F.region==="全部"||e.region===F.region);});
   var wrap=document.getElementById("viewCal");
   if(!rows.length){wrap.innerHTML='<div class="empty">这里暂时没有开票 🎐</div>';return;}
   rows.sort(sortKey);
@@ -525,6 +540,11 @@ document.getElementById("tHeat").onclick=function(){hIdx=(hIdx+1)%HEATS.length;F
   this.textContent=HEATS[hIdx][1];this.classList.toggle("on",hIdx!==0);renderMain();};
 document.getElementById("tHideDone").onclick=function(){F.showDone=!F.showDone;
   this.textContent=F.showDone?"隐藏已处理":"显示已处理";this.classList.toggle("on",F.showDone);renderMain();};
+(function(){var si=document.getElementById("searchInput"),sc=document.getElementById("searchClear");
+  function apply(){F.q=si.value.trim();sc.hidden=!F.q;if(VIEW==="cal")renderCal();else renderMain();}
+  si.addEventListener("input",apply);
+  sc.onclick=function(){si.value="";F.q="";sc.hidden=true;si.focus();if(VIEW==="cal")renderCal();else renderMain();};
+})();
 
 /* card action delegation */
 document.querySelector(".wrap").addEventListener("click",function(ev){

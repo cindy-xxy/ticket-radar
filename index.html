@@ -1,0 +1,480 @@
+<title>开票雷达</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap">
+<style>
+:root{
+  --bg:#eef1f6; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --faint:#94a3b8;
+  --line:#e7eaf0; --line2:#eef1f5; --accent:#4f46e5; --accent-soft:#eef2ff; --accent-ink:#4338ca;
+  --chip:#f1f5f9; --chip-ink:#334155; --bar:#ffffff; --shadow:0 2px 10px rgba(15,23,42,.06);
+  --kr:#2563eb; --hk:#7c3aed; --sea:#059669; --tw:#ea580c;
+  --grab:#16a34a; --skip:#94a3b8;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0e17; --card:#141a27; --ink:#e7ebf3; --muted:#9aa4b7; --faint:#6b7688;
+    --line:#232b3b; --line2:#1c2331; --accent:#818cf8; --accent-soft:#20263c; --accent-ink:#c7d0ff;
+    --chip:#1c2333; --chip-ink:#c3cbdb; --bar:#111725; --shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0e17; --card:#141a27; --ink:#e7ebf3; --muted:#9aa4b7; --faint:#6b7688;
+  --line:#232b3b; --line2:#1c2331; --accent:#818cf8; --accent-soft:#20263c; --accent-ink:#c7d0ff;
+  --chip:#1c2333; --chip-ink:#c3cbdb; --bar:#111725; --shadow:0 2px 12px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent;}
+h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;}
+/* header */
+.hd{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:linear-gradient(135deg,#111827,#3f34c9);color:#fff;
+  padding:16px 18px 12px;border-radius:0 0 18px 18px;box-shadow:var(--shadow);}
+.hd .t{font:800 21px/1.1 "Sora",sans-serif;display:flex;align-items:center;gap:8px;}
+.hd .s{font-size:12px;color:#c7d2fe;margin-top:6px;}
+.hd .upd{font-size:11px;color:#a5b4fc;margin-top:3px;}
+/* filter bar */
+.fb{position:sticky;top:calc(env(safe-area-inset-top,0px) + 4px);z-index:15;
+  background:var(--bg);padding:10px 12px 6px;}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;background:var(--chip);color:var(--chip-ink);border:1px solid transparent;
+  font-size:13px;font-weight:600;padding:7px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.chip.on{background:var(--accent);color:#fff;}
+.togrow{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;}
+.tog{font-size:12px;font-weight:600;color:var(--chip-ink);background:var(--chip);
+  padding:6px 11px;border-radius:14px;cursor:pointer;border:1px solid transparent;display:flex;align-items:center;gap:6px;}
+.tog.on{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent);}
+/* content */
+.wrap{flex:1;padding:6px 12px 96px;}
+.dateband{font:700 14px/1 "Sora",sans-serif;color:var(--ink);margin:16px 4px 10px;display:flex;align-items:center;gap:8px;}
+.dateband .rel{font-size:11px;font-weight:700;color:#fff;background:var(--accent);padding:2px 8px;border-radius:8px;}
+.dateband .wk{font-size:12px;font-weight:400;color:var(--faint);}
+/* card */
+.card{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--hc,#94a3b8);
+  border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow);position:relative;transition:opacity .15s;}
+.card.fav{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow);}
+.card.done{opacity:.5;}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.tg{font-size:12px;font-weight:700;padding:5px 9px;border-radius:8px;white-space:nowrap;}
+.tg.time{background:var(--ink);color:var(--card);}
+.tg.site{background:var(--accent-soft);color:var(--accent-ink);}
+.heat{font-size:13px;font-weight:800;color:#fff;padding:6px 11px;border-radius:20px;white-space:nowrap;}
+.show{font:800 17px/1.35 "Sora",sans-serif;margin-top:11px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;}
+.cat{font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;}
+.sub{margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.city{font-size:13px;color:var(--faint);}
+.type{font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;}
+.kw{font-size:11px;font-weight:700;background:#fef3c7;color:#b45309;padding:3px 8px;border-radius:8px;}
+.acts{display:flex;gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line2);flex-wrap:wrap;}
+.act{flex:1;min-width:72px;text-align:center;font-size:12px;font-weight:700;padding:8px 6px;border-radius:10px;
+  background:var(--chip);color:var(--chip-ink);cursor:pointer;border:1px solid transparent;user-select:none;}
+.act.star.on{background:var(--accent);color:#fff;}
+.act.grab.on{background:var(--grab);color:#fff;}
+.act.skip.on{background:var(--skip);color:#fff;}
+.ribbon{position:absolute;top:10px;right:12px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:8px;}
+/* overview */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:6px;}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 6px;text-align:center;box-shadow:var(--shadow);}
+.tile .n{font:800 24px/1 "Sora",sans-serif;}
+.tile .l{font-size:12px;color:var(--muted);margin-top:6px;}
+.sect{font:800 16px/1 "Sora",sans-serif;margin:22px 4px 12px;}
+.mini{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:9px;box-shadow:var(--shadow);}
+.clash{background:var(--card);border:1px solid #fca5a5;border-radius:12px;padding:12px 14px;margin-bottom:9px;}
+.clash .h{font-weight:800;color:#dc2626;}
+.pchip{display:inline-block;background:var(--card);border:1px solid var(--line);color:var(--chip-ink);
+  font-size:12px;font-weight:600;padding:7px 12px;border-radius:11px;margin:0 8px 8px 0;}
+.pchip b{color:var(--accent);}
+.bar{height:18px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;
+  text-align:right;line-height:18px;padding-right:8px;min-width:26px;}
+/* me tab */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow);}
+.panel h3{font-size:15px;margin:0 0 12px;}
+.kwin{display:flex;gap:8px;}
+.kwin input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:14px;color:var(--ink);}
+.kwin button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:0 16px;font-weight:700;font-size:14px;cursor:pointer;}
+.taglist{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.rmtag{background:var(--accent-soft);color:var(--accent-ink);font-size:13px;font-weight:600;
+  padding:6px 10px;border-radius:10px;cursor:pointer;}
+.rmtag:after{content:" ✕";opacity:.6;}
+.empty{color:var(--faint);font-size:13px;text-align:center;padding:30px 10px;}
+.note{font-size:12px;line-height:1.7;color:var(--muted);}
+.note b{color:var(--ink);}
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bar);
+  border-top:1px solid var(--line);display:flex;
+  padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 6px);box-shadow:0 -2px 12px rgba(15,23,42,.05);}
+.nav .nb{flex:1;text-align:center;padding:6px 0;cursor:pointer;color:var(--faint);}
+.nav .nb .ic{font-size:20px;line-height:1;}
+.nav .nb .lb{font-size:11px;font-weight:600;margin-top:3px;}
+.nav .nb.on{color:var(--accent);}
+.nav .nb .badge{display:inline-block;min-width:16px;font-size:10px;font-weight:800;color:#fff;
+  background:#dc2626;border-radius:9px;padding:0 5px;line-height:16px;margin-left:2px;vertical-align:top;}
+.legend{font-size:11px;color:var(--muted);line-height:1.9;margin-top:8px;}
+/* gate */
+.gate{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#111827,#3f34c9);
+  display:flex;align-items:center;justify-content:center;padding:24px;}
+.gatebox{width:100%;max-width:320px;text-align:center;}
+.gatebox .gt{font:800 26px/1.1 "Sora",sans-serif;color:#fff;}
+.gatebox .gs{font-size:14px;color:#c7d2fe;margin:10px 0 22px;}
+.gatebox input{width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+  color:#fff;font-size:16px;padding:13px 15px;border-radius:12px;text-align:center;}
+.gatebox input::placeholder{color:#c7d2fe;}
+.gatebox button{width:100%;margin-top:12px;background:#fff;color:#3730a3;border:none;
+  font:700 16px/1 "Sora",sans-serif;padding:14px;border-radius:12px;cursor:pointer;}
+.gerr{color:#fecaca;font-size:13px;margin-top:12px;}
+</style>
+
+<div id="gate" class="gate">
+  <div class="gatebox">
+    <div class="gt">📡 开票雷达</div>
+    <div class="gs">请输入访问口令</div>
+    <input id="gpw" type="password" inputmode="text" autocomplete="off" placeholder="口令">
+    <button id="gbtn">进入</button>
+    <div id="gerr" class="gerr" hidden>口令不对，再试试</div>
+  </div>
+</div>
+<div class="app" id="appRoot" hidden>
+  <div class="hd">
+    <div class="t">📡 开票雷达</div>
+    <div class="s" id="range">未来开票 · 中国时间</div>
+    <div class="upd" id="upd"></div>
+  </div>
+
+  <div class="fb" id="fbBar">
+    <div class="chips" id="regionChips"></div>
+    <div class="togrow">
+      <div class="tog" id="tSale">全部票种</div>
+      <div class="tog" id="tHeat">热度不限</div>
+      <div class="tog" id="tHideDone">显示已处理</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="viewList"></div>
+    <div id="viewFav" hidden></div>
+    <div id="viewStat" hidden></div>
+    <div id="viewMe" hidden></div>
+  </div>
+
+  <div class="nav">
+    <div class="nb on" data-v="list"><div class="ic">🎫</div><div class="lb">开票</div></div>
+    <div class="nb" data-v="fav"><div class="ic">⭐</div><div class="lb">关注<span id="favBadge" class="badge" hidden>0</span></div></div>
+    <div class="nb" data-v="stat"><div class="ic">📊</div><div class="lb">概览</div></div>
+    <div class="nb" data-v="me"><div class="ic">⚙️</div><div class="lb">我的</div></div>
+  </div>
+</div>
+
+<script>
+/* ---------- access gate ---------- */
+var PWHASH="09f6cc80cc778a2cb3acd05457310afc2b93233ec68443da08132bc4e1406076";
+async function _sha(s){var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join("");}
+(function(){
+  var g=document.getElementById("gate"),root=document.getElementById("appRoot");
+  var ok=false;try{ok=localStorage.getItem("tr_auth")===PWHASH;}catch(e){}
+  if(ok){g.hidden=true;root.hidden=false;}
+  function pass(){try{localStorage.setItem("tr_auth",PWHASH);}catch(e){}g.hidden=true;root.hidden=false;}
+  document.getElementById("gbtn").onclick=async function(){
+    var v=document.getElementById("gpw").value;
+    if(await _sha(v)===PWHASH)pass();else document.getElementById("gerr").hidden=false;
+  };
+  document.getElementById("gpw").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("gbtn").click();});
+})();
+
+/* ---------- data (中国时间；每日自动抓取会覆盖) ---------- */
+var META={range:"2026-09-19 ~ 09-21",updated:"2026-09-19 手动数据"};
+var RAW=[
+ ["韩国","09-21","19:00","NOL","仁川","DAY6","公售",90],
+ ["韩国","09-21","19:00","ticketlink","首尔","都敬秀(EXO D.O.)","公售",88],
+ ["韩国","09-21","19:00","yes24","首尔","沈昌珉(TVXQ)","会员预售(GL)",75],
+ ["韩国","09-21","19:00","Melon","首尔","朴珍荣(GOT7)","公售(GL)",75],
+ ["韩国","09-21","19:00","ticketlink","首尔","Kep1er","公售",70],
+ ["韩国","09-21","17:00","Melon","首尔","ONEWE X B1A4","公售",55],
+ ["韩国","09-21","11:00","NOL","首尔","Malcolm Todd","预售",50],
+ ["韩国","09-21","19:00","yes24","大邱","李昌燮(BTOB)","会员预售",50],
+ ["韩国","09-21","16:00","NOL","大邱","权真我","会员预售",45],
+ ["韩国","09-21","17:00","NOL","釜山","权真我","会员预售",45],
+ ["韩国","09-21","18:00","yes24","首尔","DKB","会员预售",40],
+ ["韩国","09-21","13:00","ticketlink","首尔","郑善雅","公售",40],
+ ["韩国","09-21","19:00","NOL","首尔","ALL(H)OURS","会员预售",40],
+ ["韩国","09-21","18:00","ticketlink","首尔","工藤晴香","公售",35],
+ ["韩国","09-21","19:00","Melon","首尔","金荣祖","公售",30],
+ ["韩国","09-21","19:00","yes24","首尔","李上渊","公售",30],
+ ["港澳","09-21","14:00","Fantopia、大麦","澳门","TXT","会员预售",95],
+ ["港澳","09-21","12:00","新濠影汇、Trip","澳门","孔刘(演员见面会)","公售",85],
+ ["港澳","09-19","10:00","HKT","香港","Twins","银联卡预售",82],
+ ["港澳","09-21","12:00","HKT","香港","Twins","公售",82],
+ ["港澳","09-21","12:00","Fantopia、大麦","澳门","艺声(Super Junior)","会员预售",70],
+ ["东南亚","09-21","11:00","ticketmaster.th","曼谷","Stray Kids","会员预售",98],
+ ["东南亚","09-21","10:00","Trip","吉隆坡","BIGBANG","预售",95],
+ ["东南亚","09-20","13:00","ALLTICKET、7-11","曼谷","GELBOYS 2","公售",58],
+ ["东南亚","09-21","10:00","ticketmaster.sg","新加坡","Malcolm Todd","预售",50],
+ ["东南亚","09-19","11:00","TTM","曼谷","BE PEERAPAT","公售",50],
+ ["东南亚","09-19","13:00","ALLTICKET、7-11","曼谷","SONRAY SHOWCASE","公售",48],
+ ["东南亚","09-20","11:00","TTM","曼谷","Match Point","公售",45],
+ ["东南亚","09-19","11:00","TTM","曼谷","JAN JINGJING","公售",42],
+ ["台湾","09-21","10:00","klook、Trip","台湾","BIGBANG","优先购",95],
+ ["台湾","09-19","10:00","宽宏售票","台湾","BIGBANG uniopen联名卡","预售",95],
+ ["台湾","09-20","11:00","KKTIX","台湾","艺声(Super Junior)","会员预售",70],
+ ["台湾","09-20","18:00","KKTIX","台湾","艺声(Super Junior)","公售",70],
+ ["台湾","09-19","12:00","KKTIX","台湾","小男孩乐团","公售",50],
+ ["台湾","09-19","12:00","TICKET PLUS","台湾","KNK","公售",42],
+ ["台湾","09-20","12:00","KKTIX","台湾","Himegoto","公售",35],
+ ["台湾","09-20","12:00","KKTIX","台湾","BLU-SWING","公售",35],
+];
+var CAT={
+ "DAY6":"乐团","都敬秀(EXO D.O.)":"SOLO","沈昌珉(TVXQ)":"SOLO","朴珍荣(GOT7)":"SOLO","Kep1er":"女团",
+ "ONEWE X B1A4":"乐团","Malcolm Todd":"欧美","李昌燮(BTOB)":"SOLO","权真我":"SOLO","DKB":"男团",
+ "郑善雅":"SOLO","ALL(H)OURS":"男团","工藤晴香":"日系","金荣祖":"SOLO","李上渊":"SOLO",
+ "TXT":"男团","孔刘(演员见面会)":"演员","Twins":"女团","艺声(Super Junior)":"SOLO",
+ "Stray Kids":"男团","BIGBANG":"男团","GELBOYS 2":"泰剧","BE PEERAPAT":"泰国","Match Point":"泰国",
+ "SONRAY SHOWCASE":"泰国","JAN JINGJING":"泰国","BIGBANG uniopen联名卡":"男团","小男孩乐团":"乐团",
+ "KNK":"男团","Himegoto":"日系","BLU-SWING":"日系"
+};
+var CATC={"男团":["#fce7f3","#be185d"],"女团":["#fae8ff","#a21caf"],"SOLO":["#e0e7ff","#4338ca"],
+ "乐团":["#ccfbf1","#0f766e"],"演员":["#fef3c7","#92400e"],"日系":["#e2e8f0","#475569"],
+ "泰国":["#dcfce7","#15803d"],"泰剧":["#dcfce7","#15803d"],"欧美":["#f1f5f9","#64748b"]};
+var REL={"09-19":["今日","周六"],"09-20":["明日","周日"],"09-21":["后天","周一"]};
+var REGC={"韩国":"var(--kr)","港澳":"var(--hk)","东南亚":"var(--sea)","台湾":"var(--tw)"};
+var EXCLUDED="马尼拉、雅加达、tixcraft、ticketmelon、7-11(曼谷)、ibon、GoLive、Cityline";
+
+function buildEV(rows){return rows.map(function(r){return {id:r[1]+"|"+r[2]+"|"+r[3]+"|"+r[5],
+  region:r[0],date:r[1],time:r[2],site:r[3],city:r[4],show:r[5],type:r[6],heat:r[7],cat:CAT[r[5]]||""};});}
+var EV=buildEV(RAW);
+
+/* ---------- prefs (localStorage) ---------- */
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var P={follows:load("tr_follows",[]),keywords:load("tr_keywords",[]),
+       hidden:load("tr_hidden",[]),marks:load("tr_marks",{})};
+function persist(){save("tr_follows",P.follows);save("tr_keywords",P.keywords);
+  save("tr_hidden",P.hidden);save("tr_marks",P.marks);}
+
+/* ---------- helpers ---------- */
+function heatColor(s){return s>=85?"#e11d48":s>=70?"#f97316":s>=55?"#eab308":s>=45?"#65a30d":"#94a3b8";}
+function isFav(e){return P.follows.indexOf(e.show)>=0;}
+function kwHit(e){for(var i=0;i<P.keywords.length;i++){var k=P.keywords[i];
+  if(k&&((e.show.indexOf(k)>=0)||(e.site.indexOf(k)>=0)||(e.city.indexOf(k)>=0)))return k;}return null;}
+function isHidden(e){return P.hidden.indexOf(e.site)>=0||P.hidden.indexOf(e.region)>=0;}
+function esc(s){return (s+"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
+
+/* filter state */
+var F={region:"全部",sale:"全部",heat:0,showDone:false};
+var SALES=["全部","公售","预售","会员","优先"];
+var HEATS=[[0,"热度不限"],[45,"≥45"],[70,"≥70"],[85,"≥85 重点"]];
+var hIdx=0,sIdx=0;
+
+function typeColor(t){return t.indexOf("会员")>=0?["#fef3c7","#b45309"]:
+  (t.indexOf("预售")>=0||t.indexOf("优先")>=0)?["#dbeafe","#1d4ed8"]:["#dcfce7","#15803d"];}
+function catBadge(e){if(!e.cat)return"";var c=CATC[e.cat]||["#f1f5f9","#64748b"];
+  return '<span class="cat" style="background:'+c[0]+';color:'+c[1]+'">'+e.cat+'</span>';}
+
+function cardHTML(e){
+  var hc=heatColor(e.heat),fav=isFav(e),kw=kwHit(e),mark=P.marks[e.id];
+  var tc=typeColor(e.type);
+  var ribbon=mark==="grab"?'<span class="ribbon" style="background:var(--grab);color:#fff">已抢 ✓</span>':
+             mark==="skip"?'<span class="ribbon" style="background:var(--skip);color:#fff">已放弃</span>':"";
+  return '<div class="card'+(fav?" fav":"")+(mark?" done":"")+'" style="--hc:'+hc+'" data-id="'+e.id+'">'+
+    ribbon+
+    '<div class="crow"><div class="tags">'+
+      '<span class="tg time">'+e.time+'</span>'+
+      '<span class="tg site">'+esc(e.site)+'</span>'+
+      (kw?'<span class="kw">🔔 '+esc(kw)+'</span>':"")+
+    '</div><span class="heat" style="background:'+hc+'">🔥 '+e.heat+'</span></div>'+
+    '<div class="show">'+(e.heat>=85?'<span style="color:#e11d48">★</span> ':"")+esc(e.show)+catBadge(e)+'</div>'+
+    '<div class="sub"><span class="city">📍 '+esc(e.city)+' · '+esc(e.region)+'</span>'+
+      '<span class="type" style="background:'+tc[0]+';color:'+tc[1]+'">'+esc(e.type)+'</span></div>'+
+    '<div class="acts">'+
+      '<div class="act star'+(fav?" on":"")+'" data-a="star">'+(fav?"★ 已关注":"☆ 关注")+'</div>'+
+      '<div class="act grab'+(mark==="grab"?" on":"")+'" data-a="grab">✓ 已抢</div>'+
+      '<div class="act skip'+(mark==="skip"?" on":"")+'" data-a="skip">✕ 放弃</div>'+
+      '<div class="act" data-a="hide">🚫 隐藏站</div>'+
+    '</div></div>';
+}
+
+function passFilter(e){
+  if(isHidden(e))return false;
+  if(F.region!=="全部"&&e.region!==F.region)return false;
+  if(F.sale!=="全部"&&e.type.indexOf(F.sale)<0)return false;
+  if(e.heat<F.heat)return false;
+  if(!F.showDone&&P.marks[e.id])return false;
+  return true;
+}
+function sortKey(a,b){
+  return a.date.localeCompare(b.date)||a.time.localeCompare(b.time)||
+    a.site.localeCompare(b.site)||a.region.localeCompare(b.region)||
+    a.show.localeCompare(b.show)||(b.heat-a.heat);
+}
+
+function renderList(target,rows,favFirst){
+  var wrap=document.getElementById(target);
+  if(!rows.length){wrap.innerHTML='<div class="empty">这里暂时没有符合条件的开票 🎐</div>';return;}
+  rows.sort(sortKey);
+  var byDate={};rows.forEach(function(e){(byDate[e.date]=byDate[e.date]||[]).push(e);});
+  var html="",dates=Object.keys(byDate).sort();
+  dates.forEach(function(d){
+    var list=byDate[d];
+    if(favFirst)list.sort(function(a,b){var fa=isFav(a)||kwHit(a),fb=isFav(b)||kwHit(b);
+      if(fa&&!fb)return -1;if(!fa&&fb)return 1;return sortKey(a,b);});
+    var r=REL[d]||["",""];
+    html+='<div class="dateband">🗓 '+d+' <span class="wk">'+r[1]+'</span>'+(r[0]?'<span class="rel">'+r[0]+'</span>':"")+'</div>';
+    list.forEach(function(e){html+=cardHTML(e);});
+  });
+  wrap.innerHTML=html;
+}
+
+function renderMain(){
+  var rows=EV.filter(passFilter);
+  renderList("viewList",rows,true);
+}
+function renderFav(){
+  var rows=EV.filter(function(e){return (isFav(e)||kwHit(e))&&!isHidden(e);});
+  var wrap=document.getElementById("viewFav");
+  if(!rows.length){wrap.innerHTML='<div class="empty">还没有关注的艺人或关注词命中。<br>去「开票」页点 ☆ 关注，或在「我的」里加关注词。</div>';return;}
+  wrap.innerHTML="";renderList("viewFav",rows,false);
+}
+
+function renderStat(){
+  var all=EV.filter(function(e){return !isHidden(e);});
+  var total=all.length,key=all.filter(function(e){return e.heat>=85;}).length;
+  var byR={};all.forEach(function(e){byR[e.region]=(byR[e.region]||0)+1;});
+  var byD={};all.forEach(function(e){byD[e.date]=(byD[e.date]||0)+1;});
+  var top=all.slice().sort(function(a,b){return b.heat-a.heat;}).slice(0,5);
+  var coll={};all.forEach(function(e){var k=e.date+" "+e.time;(coll[k]=coll[k]||[]).push(e);});
+  var clash=Object.keys(coll).filter(function(k){return coll[k].length>=3;})
+    .sort(function(a,b){return coll[b].length-coll[a].length||a.localeCompare(b);});
+  var byP={};all.forEach(function(e){byP[e.site]=(byP[e.site]||0)+1;});
+  var plats=Object.keys(byP).sort(function(a,b){return byP[b]-byP[a]||a.localeCompare(b);});
+
+  var h='<div class="grid">'+
+    tile(total,"总场次","var(--ink)")+tile(key,"重点≥85","#e11d48")+tile(byR["韩国"]||0,"韩国","var(--kr)")+
+    tile(byR["港澳"]||0,"港澳","var(--hk)")+tile(byR["东南亚"]||0,"东南亚","var(--sea)")+tile(byR["台湾"]||0,"台湾","var(--tw)")+
+    '</div>';
+  var md=Math.max.apply(null,Object.values(byD).concat([1]));
+  h+='<div class="sect">📅 每日场次</div>';
+  Object.keys(byD).sort().forEach(function(d){var n=byD[d],r=REL[d]||["",""];
+    h+='<div class="mini" style="display:flex;align-items:center;gap:10px"><div style="width:78px;font-size:12px;font-weight:600;color:var(--muted)">'+d+' '+r[0]+'</div>'+
+    '<div style="flex:1"><div class="bar" style="width:'+Math.round(n/md*100)+'%">'+n+'</div></div></div>';});
+
+  h+='<div class="sect">🔥 全场最火 TOP5</div>';
+  var medal=["🥇","🥈","🥉","4️⃣","5️⃣"];
+  top.forEach(function(e,i){h+='<div class="mini" style="display:flex;align-items:center;gap:10px">'+
+    '<div style="font-size:19px">'+medal[i]+'</div><div style="flex:1"><div style="font-weight:800;font-size:15px">'+esc(e.show)+catBadge(e)+'</div>'+
+    '<div style="font-size:12px;color:var(--faint);margin-top:3px">📍 '+esc(e.city)+' · '+e.date+' '+e.time+' · '+esc(e.site)+'</div></div>'+
+    '<span class="heat" style="background:'+heatColor(e.heat)+'">'+e.heat+'</span></div>';});
+
+  if(clash.length){h+='<div class="sect" style="color:#dc2626">⚠️ 撞车时段（同刻多场，需取舍）</div>';
+    clash.forEach(function(k){var v=coll[k].slice().sort(function(a,b){return b.heat-a.heat;});
+      var names=v.slice(0,3).map(function(e){return e.show;}).join("、")+(v.length>3?" 等"+v.length+"场":"");
+      h+='<div class="clash"><span class="h">'+k+' · '+v.length+'场</span><div style="font-size:13px;color:var(--muted);margin-top:6px">'+esc(names)+'</div></div>';});}
+
+  h+='<div class="sect">🏷️ 平台分布 · 提前备号</div><div>';
+  plats.forEach(function(p){h+='<span class="pchip">'+esc(p)+' <b>'+byP[p]+'</b></span>';});
+  h+='</div>';
+  h+='<div class="legend">热度色阶：🔴≥85 爆　🟠70-84 高　🟡55-69 中　🟢45-54 低　⚪&lt;45 冷<br>排序：日期→时间→网站→地区→艺人→票种→热度</div>';
+  document.getElementById("viewStat").innerHTML=h;
+}
+function tile(n,l,c){return '<div class="tile"><div class="n" style="color:'+c+'">'+n+'</div><div class="l">'+l+'</div></div>';}
+
+function renderMe(){
+  var marked=EV.filter(function(e){return P.marks[e.id];});
+  var h='';
+  h+='<div class="panel"><h3>🔔 自定义关注词</h3>'+
+    '<div class="kwin"><input id="kwInput" placeholder="如 IU / 演唱会 / KKTIX" maxlength="20"><button id="kwAdd">添加</button></div>'+
+    '<div class="taglist" id="kwList"></div>'+
+    '<div class="note" style="margin-top:10px">命中演出名/平台/城市的场次会打上 🔔 标记并进入「关注」。</div></div>';
+  h+='<div class="panel"><h3>⭐ 我关注的艺人（'+P.follows.length+'）</h3><div class="taglist" id="favList"></div>'+
+    (P.follows.length?"":'<div class="note">在「开票」页点卡片的 ☆ 关注即可添加。</div>')+'</div>';
+  h+='<div class="panel"><h3>🚫 已隐藏（'+P.hidden.length+'）</h3><div class="taglist" id="hideList"></div>'+
+    (P.hidden.length?"":'<div class="note">在卡片上点「隐藏站」可隐藏该平台。</div>')+'</div>';
+  h+='<div class="panel"><h3>🗂 已标记（'+marked.length+'）</h3>'+
+    (marked.length?marked.map(function(e){return '<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--line2)">'+
+      (P.marks[e.id]==="grab"?'<b style="color:var(--grab)">已抢</b>':'<b style="color:var(--skip)">放弃</b>')+
+      ' · '+e.date+' '+e.time+' '+esc(e.show)+'</div>';}).join(""):'<div class="note">卡片上点「已抢/放弃」标记。</div>')+'</div>';
+  h+='<div class="panel"><h3>ℹ️ 说明</h3><div class="note">'+
+    '<b>数据</b>：'+esc(META.updated)+'，每日自动抓取更新。<br>'+
+    '<b>时间</b>：均为中国时间（UTC+8）。<br>'+
+    '<b>已排除</b>：'+EXCLUDED+'。<br>'+
+    '<b>通知</b>：关注命中的开票会通过邮件/微信推送提醒。</div></div>';
+  var box=document.getElementById("viewMe");box.innerHTML=h;
+
+  var kl=document.getElementById("kwList");
+  kl.innerHTML=P.keywords.map(function(k){return '<span class="rmtag" data-rk="'+esc(k)+'">'+esc(k)+'</span>';}).join("")||'<span class="note">暂无</span>';
+  var fl=document.getElementById("favList");
+  fl.innerHTML=P.follows.map(function(k){return '<span class="rmtag" data-rf="'+esc(k)+'">'+esc(k)+'</span>';}).join("");
+  var hl=document.getElementById("hideList");
+  hl.innerHTML=P.hidden.map(function(k){return '<span class="rmtag" data-rh="'+esc(k)+'">'+esc(k)+'</span>';}).join("");
+
+  document.getElementById("kwAdd").onclick=function(){var v=document.getElementById("kwInput").value.trim();
+    if(v&&P.keywords.indexOf(v)<0){P.keywords.push(v);persist();refresh();}};
+  document.getElementById("kwInput").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("kwAdd").onclick();});
+  box.querySelectorAll("[data-rk]").forEach(function(el){el.onclick=function(){P.keywords=P.keywords.filter(function(x){return x!==el.getAttribute("data-rk");});persist();refresh();};});
+  box.querySelectorAll("[data-rf]").forEach(function(el){el.onclick=function(){P.follows=P.follows.filter(function(x){return x!==el.getAttribute("data-rf");});persist();refresh();};});
+  box.querySelectorAll("[data-rh]").forEach(function(el){el.onclick=function(){P.hidden=P.hidden.filter(function(x){return x!==el.getAttribute("data-rh");});persist();refresh();};});
+}
+
+function updBadge(){var n=EV.filter(function(e){return (isFav(e)||kwHit(e))&&!isHidden(e)&&!P.marks[e.id];}).length;
+  var b=document.getElementById("favBadge");if(n){b.textContent=n;b.hidden=false;}else b.hidden=true;}
+
+var VIEW="list";
+function refresh(){
+  document.getElementById("range").textContent=META.range+" · 中国时间";
+  document.getElementById("upd").textContent="更新："+META.updated;
+  if(VIEW==="list")renderMain();
+  else if(VIEW==="fav")renderFav();
+  else if(VIEW==="stat")renderStat();
+  else if(VIEW==="me")renderMe();
+  updBadge();
+}
+function switchView(v){
+  VIEW=v;
+  ["list","fav","stat","me"].forEach(function(x){document.getElementById("view"+x.charAt(0).toUpperCase()+x.slice(1)).hidden=(x!==v);});
+  document.querySelectorAll(".nav .nb").forEach(function(nb){nb.classList.toggle("on",nb.getAttribute("data-v")===v);});
+  document.getElementById("fbBar").hidden=(v!=="list");
+  refresh();
+  window.scrollTo(0,0);
+}
+
+/* events */
+document.querySelectorAll(".nav .nb").forEach(function(nb){nb.onclick=function(){switchView(nb.getAttribute("data-v"));};});
+
+document.getElementById("regionChips");
+function buildRegionChips(){
+  var rc=document.getElementById("regionChips");var regs=["全部","韩国","港澳","东南亚","台湾"];
+  rc.innerHTML=regs.map(function(r){return '<div class="chip'+(r===F.region?" on":"")+'" data-r="'+r+'">'+r+'</div>';}).join("");
+  rc.querySelectorAll(".chip").forEach(function(c){c.onclick=function(){F.region=c.getAttribute("data-r");buildRegionChips();renderMain();};});
+}
+document.getElementById("tSale").onclick=function(){sIdx=(sIdx+1)%SALES.length;F.sale=SALES[sIdx];
+  this.textContent=sIdx===0?"全部票种":SALES[sIdx];this.classList.toggle("on",sIdx!==0);renderMain();};
+document.getElementById("tHeat").onclick=function(){hIdx=(hIdx+1)%HEATS.length;F.heat=HEATS[hIdx][0];
+  this.textContent=HEATS[hIdx][1];this.classList.toggle("on",hIdx!==0);renderMain();};
+document.getElementById("tHideDone").onclick=function(){F.showDone=!F.showDone;
+  this.textContent=F.showDone?"隐藏已处理":"显示已处理";this.classList.toggle("on",F.showDone);renderMain();};
+
+/* card action delegation */
+document.querySelector(".wrap").addEventListener("click",function(ev){
+  var act=ev.target.closest(".act");if(!act)return;
+  var card=ev.target.closest(".card");if(!card)return;
+  var id=card.getAttribute("data-id"),e=EV.filter(function(x){return x.id===id;})[0];if(!e)return;
+  var a=act.getAttribute("data-a");
+  if(a==="star"){var i=P.follows.indexOf(e.show);if(i>=0)P.follows.splice(i,1);else P.follows.push(e.show);}
+  else if(a==="grab"){P.marks[e.id]=P.marks[e.id]==="grab"?undefined:"grab";if(!P.marks[e.id])delete P.marks[e.id];}
+  else if(a==="skip"){P.marks[e.id]=P.marks[e.id]==="skip"?undefined:"skip";if(!P.marks[e.id])delete P.marks[e.id];}
+  else if(a==="hide"){if(P.hidden.indexOf(e.site)<0)P.hidden.push(e.site);}
+  persist();refresh();
+});
+
+buildRegionChips();
+switchView("list");
+
+/* 每日自动抓取会覆盖 events.json；有就用最新数据 */
+fetch("events.json?_="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  if(d&&d.events&&d.events.length){EV=buildEV(d.events);
+    if(d.range)META.range=d.range;if(d.updated)META.updated=d.updated;refresh();}
+}).catch(function(){});
+</script>

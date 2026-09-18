@@ -1,0 +1,5 @@
+config.json
+*.token
+secrets/
+__pycache__/
+*.pyc

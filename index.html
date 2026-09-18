@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="开票雷达">
+<meta name="theme-color" content="#111827">
 <title>开票雷达</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap">
 <style>
@@ -129,6 +138,8 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
   font:700 16px/1 "Sora",sans-serif;padding:14px;border-radius:12px;cursor:pointer;}
 .gerr{color:#fecaca;font-size:13px;margin-top:12px;}
 </style>
+</head>
+<body>
 
 <div id="gate" class="gate">
   <div class="gatebox">
@@ -479,3 +490,5 @@ fetch("events.json?_="+Date.now()).then(function(r){return r.ok?r.json():null;})
     if(d.range)META.range=d.range;if(d.updated)META.updated=d.updated;refresh();}
 }).catch(function(){});
 </script>
+</body>
+</html>

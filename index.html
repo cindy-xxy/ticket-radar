@@ -133,6 +133,23 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
 .calchip .hd2{font-size:11px;font-weight:800;color:#fff;border-radius:9px;padding:2px 6px;}
 .calchip .tm{font-size:11px;color:var(--muted);font-weight:600;}
 .calhint{font-size:12px;color:var(--faint);margin:2px 4px 10px;}
+/* membership module */
+.memhd{font:800 16px/1 "Sora",sans-serif;margin:18px 4px 12px;display:flex;align-items:center;gap:8px;}
+.memcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:11px;box-shadow:var(--shadow);}
+.memcard.live{border-left:5px solid #16a34a;}
+.memcard.soon{border-left:5px solid #e11d48;}
+.memcard.ended{border-left:5px solid var(--faint);opacity:.62;}
+.memcard .mt{font:700 15px/1.35 "Sora",sans-serif;color:var(--ink);}
+.memcard .mr{font-size:12px;color:var(--muted);margin-top:8px;}
+.memcd{display:inline-block;margin-top:10px;font:800 15px/1 "Sora",sans-serif;padding:7px 12px;border-radius:10px;}
+.memcd.g{background:#dcfce7;color:#15803d;}
+.memcd.r{background:#fee2e2;color:#b91c1c;}
+.memcd.e{background:var(--chip);color:var(--faint);font-weight:700;font-size:13px;}
+.mlinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.mlink{display:inline-block;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  padding:9px 15px;border-radius:10px;text-decoration:none;}
+.mlink.sec{background:var(--accent-soft);color:var(--accent-ink);}
+.memnote{font-size:12px;color:var(--faint);margin:2px 4px 12px;}
 /* bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bar);
   border-top:1px solid var(--line);display:flex;
@@ -194,6 +211,7 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
   <div class="wrap">
     <div id="viewList"></div>
     <div id="viewCal" hidden></div>
+    <div id="viewMem" hidden></div>
     <div id="viewFav" hidden></div>
     <div id="viewStat" hidden></div>
     <div id="viewMe" hidden></div>
@@ -202,6 +220,7 @@ h1,h2,h3,.disp{font-family:"Sora",-apple-system,"Microsoft YaHei",sans-serif;}
   <div class="nav">
     <div class="nb on" data-v="list"><div class="ic">🎫</div><div class="lb">开票</div></div>
     <div class="nb" data-v="cal"><div class="ic">📅</div><div class="lb">日历</div></div>
+    <div class="nb" data-v="mem"><div class="ic">🎟️</div><div class="lb">会员<span id="memBadge" class="badge" hidden>0</span></div></div>
     <div class="nb" data-v="fav"><div class="ic">⭐</div><div class="lb">关注<span id="favBadge" class="badge" hidden>0</span></div></div>
     <div class="nb" data-v="stat"><div class="ic">📊</div><div class="lb">概览</div></div>
     <div class="nb" data-v="me"><div class="ic">⚙️</div><div class="lb">我的</div></div>
@@ -505,20 +524,56 @@ function renderMe(){
 function updBadge(){var n=EV.filter(function(e){return (isFav(e)||kwHit(e))&&!isHidden(e)&&!P.marks[e.id];}).length;
   var b=document.getElementById("favBadge");if(n){b.textContent=n;b.hidden=false;}else b.hidden=true;}
 
+/* ---------- 会员申请模块 ---------- */
+var MEM=[];
+function fmtCN(ts){try{return new Date(ts).toLocaleString("zh-CN",{timeZone:"Asia/Shanghai",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});}catch(e){return "";}}
+function fmtLeft(ms){
+  if(ms<=0)return "已截止";
+  var m=Math.floor(ms/60000),d=Math.floor(m/1440),h=Math.floor((m%1440)/60),mi=m%60;
+  if(d>0)return "⏳ 距截止 "+d+"天"+h+"小时";
+  if(h>0)return "⏳ 距截止 "+h+"小时"+mi+"分";
+  return "⏳ 距截止 "+mi+"分钟";
+}
+function memCard(e,now,isLive){
+  var left=e.end-now,soon=left<24*3600000;
+  var cls=isLive?(soon?"soon":"live"):"ended";
+  var links=(e.links||[]).map(function(l){return '<a class="mlink'+(l.label?" sec":"")+'" href="'+l.url+'" target="_blank" rel="noopener">'+(l.label?esc(l.label)+" 申请":"去申请")+' ↗</a>';}).join("");
+  var cd=isLive?'<div class="memcd '+(soon?"r":"g")+'" data-end="'+e.end+'">'+fmtLeft(left)+'</div>'
+               :'<div class="memcd e">已于 '+fmtCN(e.end)+' 结束</div>';
+  return '<div class="memcard '+cls+'"><div class="mt">'+esc(e.title)+'</div>'+
+    '<div class="mr">🕐 申请时间（中国）：'+fmtCN(e.start)+' ~ '+fmtCN(e.end)+'</div>'+
+    cd+(isLive&&links?'<div class="mlinks">'+links+'</div>':"")+'</div>';
+}
+function renderMem(){
+  var now=Date.now();
+  var live=MEM.filter(function(e){return e.end>now;}).sort(function(a,b){return a.end-b.end;});
+  var ended=MEM.filter(function(e){return e.end<=now;}).sort(function(a,b){return b.end-a.end;});
+  var h='<div class="memnote">会员申请/购买名额 · 时间为中国时间；进行中按「快截止」排前面</div>';
+  h+='<div class="memhd">🟢 正在进行 ('+live.length+')</div>';
+  h+= live.length?live.map(function(e){return memCard(e,now,true);}).join(""):'<div class="empty">暂无进行中的会员申请</div>';
+  h+='<div class="memhd">⚪ 已结束 ('+ended.length+')</div>';
+  h+= ended.map(function(e){return memCard(e,now,false);}).join("");
+  document.getElementById("viewMem").innerHTML=h;
+}
+function updMemBadge(){var now=Date.now();var n=MEM.filter(function(e){return e.end>now;}).length;
+  var b=document.getElementById("memBadge");if(n){b.textContent=n;b.hidden=false;}else b.hidden=true;}
+setInterval(function(){if(VIEW==="mem")renderMem();updMemBadge();},60000);
+
 var VIEW="list";
 function refresh(){
   document.getElementById("range").textContent=META.range+" · 中国时间";
   document.getElementById("upd").textContent="更新："+META.updated;
   if(VIEW==="list")renderMain();
   else if(VIEW==="cal")renderCal();
+  else if(VIEW==="mem")renderMem();
   else if(VIEW==="fav")renderFav();
   else if(VIEW==="stat")renderStat();
   else if(VIEW==="me")renderMe();
-  updBadge();
+  updBadge();updMemBadge();
 }
 function switchView(v){
   VIEW=v;
-  ["list","cal","fav","stat","me"].forEach(function(x){document.getElementById("view"+x.charAt(0).toUpperCase()+x.slice(1)).hidden=(x!==v);});
+  ["list","cal","mem","fav","stat","me"].forEach(function(x){document.getElementById("view"+x.charAt(0).toUpperCase()+x.slice(1)).hidden=(x!==v);});
   document.querySelectorAll(".nav .nb").forEach(function(nb){nb.classList.toggle("on",nb.getAttribute("data-v")===v);});
   document.getElementById("fbBar").hidden=(v!=="list"&&v!=="cal");
   refresh();
@@ -570,6 +625,11 @@ switchView("list");
 fetch("events.json?_="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){
   if(d&&d.events&&d.events.length){EV=buildEV(d.events);
     if(d.range)META.range=d.range;if(d.updated)META.updated=d.updated;buildDateChips();refresh();}
+}).catch(function(){});
+
+/* 会员申请数据 */
+fetch("memberships.json?_="+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  if(Array.isArray(d)){MEM=d;updMemBadge();if(VIEW==="mem")renderMem();}
 }).catch(function(){});
 </script>
 </body>
